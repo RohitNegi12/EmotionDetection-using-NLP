@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from streamlit.delta_generator import DeltaGenerator
 
 st.set_page_config(page_title="Review Analysis", page_icon="🧪")
 
@@ -13,8 +15,8 @@ def getHighestSentimentLabel(df):
     return explode
 
 
-def drawChart(df):
-    labels = ("Negative", "Neutral", "Positive")
+def drawChart(df: pd.DataFrame):
+    labels = ["Negative", "Neutral", "Positive"]
     test = df[["roberta_neg", "roberta_neu", "roberta_pos"]].mean()  # Pandas Series
     avg_sentiments = [i for i in test]
 
@@ -33,24 +35,53 @@ def drawChart(df):
     st.pyplot(fig1)
 
 
+@st.cache_data
+def getDataFrames(numberOfFrames: int = 2):
+    testFrames = []
+    for _ in range(numberOfFrames):
+        dummyData = np.random.rand(10, 3)
+        # Normalize the dummy data so that each row adds up to 1.0
+        dummyData = dummyData / dummyData.sum(axis=1, keepdims=True)
+        testFrame = pd.DataFrame(
+            data=dummyData, columns=["roberta_neg", "roberta_neu", "roberta_pos"]
+        )
+        testFrames.append(testFrame)
+    return testFrames
+
+
+def printCharts(frames: list[pd.DataFrame], stContainers: tuple[DeltaGenerator, ...]):
+    width = len(stContainers)
+    for i in range(len(frames)):
+        with stContainers[i % width]:
+            st.write(f"Product {i+1}")
+            drawChart(frames[i])
+
+
+def updateNumberOfFrames(num: int) -> None:
+    st.session_state.numberOfFrames = num
+
+
+# Session States
+if "numberOfFrames" not in st.session_state:
+    st.session_state.numberOfFrames = None
+
+# Main Page
+
 st.title("Review Analysis")
+
+
+inputArea = st.empty()
 
 left_col, right_col = st.columns(2)
 
-with left_col:
-    st.write("This is the left column")
-    st.write("Product 1")
-    testFrame = pd.DataFrame(
-        data=((0.6, 0.3, 0.1), (0.6, 0.3, 0.1)),
-        columns=("roberta_neg", "roberta_neu", "roberta_pos"),
+with inputArea.container():
+    numberOfFrames: int = int(
+        st.number_input(
+            "Enter number of dummy products (2 - 10)", 2, 10, 2, 1, "%d", "test_input"
+        )
     )
-    drawChart(testFrame)
+    if st.button("Get Analysis", "test_button"):
+        st.session_state.numberOfFrames = numberOfFrames
 
-with right_col:
-    st.write("This is the right column")
-    st.write("Product 2")
-    testFrame = pd.DataFrame(
-        data=((0.3, 0.1, 0.6), (0.3, 0.1, 0.6)),
-        columns=("roberta_neg", "roberta_neu", "roberta_pos"),
-    )
-    drawChart(testFrame)
+if st.session_state.numberOfFrames is not None:
+    printCharts(getDataFrames(st.session_state.numberOfFrames), (left_col, right_col))
