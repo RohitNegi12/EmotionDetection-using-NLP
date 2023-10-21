@@ -81,3 +81,6 @@ def greet():
     with open("test_file.csv", "r") as test_file:
         scores = json.dumps(getScores(test_file))
         return scores
+
+if __name__ == "__main__":
+    app.run()
