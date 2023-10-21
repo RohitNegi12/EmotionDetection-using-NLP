@@ -37,20 +37,6 @@ def drawChart(scores: list[float]):
     st.pyplot(fig1)
 
 
-@st.cache_data
-def getDataFrames(numberOfFrames: int = 2):
-    testFrames = []
-    for _ in range(numberOfFrames):
-        dummyData = np.random.rand(10, 3)
-        # Normalize the dummy data so that each row adds up to 1.0
-        dummyData = dummyData / dummyData.sum(axis=1, keepdims=True)
-        testFrame = pd.DataFrame(
-            data=dummyData, columns=["roberta_neg", "roberta_neu", "roberta_pos"]
-        )
-        testFrames.append(testFrame)
-    return testFrames
-
-
 def printCharts(data: dict[str, list[float]], stContainers: tuple[DeltaGenerator, ...]):
     width = len(stContainers)
     keys = list(data.keys())
@@ -66,15 +52,18 @@ st.title("Review Analysis")
 
 inputArea = st.empty()
 
-left_col, right_col = st.columns(2)
-
 with inputArea.container():
     "Upload your data in .csv format"
     st.markdown("Ensure columns are labelled: ```product_id, review```")
+    col_decision = st.empty()
+    with col_decision:
+        no_of_columns = int(st.number_input("Enter no. of columns", 2, 6, 2, 1, "%d"))
+
     data = st.file_uploader(label="Review Data", type=["csv"])
     if st.button("Get Analysis", "test_button") and data is not None:
+        col_decision.write(f"No. of columns: {no_of_columns}")
         url = "http://localhost:5000/scores"
         files = {"review_data": ("something", data, "text/csv")}
         response = requests.get(url, files=files)
         results = json.loads(response.text)
-        printCharts(results, (left_col, right_col))
+        printCharts(results, tuple(st.columns(no_of_columns)))
