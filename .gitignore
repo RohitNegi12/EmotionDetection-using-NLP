@@ -1,8 +1,8 @@
 # Global
-__pycahce__
+__pycahce__/
 
 # GUI
-Emotion Detection GUI/*
+Emotion Detection GUI/venv/*
 !Emotion Detection GUI/main.py
 !Emotion Detection GUI/requirements.txt
 
