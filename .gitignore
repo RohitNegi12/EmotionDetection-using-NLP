@@ -1,8 +1,8 @@
 # Global
 __pycache__
+venv
 
 # GUI
-Emotion Detection GUI/venv/*
 !Emotion Detection GUI/main.py
 !Emotion Detection GUI/requirements.txt
 

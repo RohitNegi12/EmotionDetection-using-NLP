@@ -1,15 +1,16 @@
 from typing import TextIO
 import pandas as pd
 import numpy as np
-import json
+import jsonpickle
 
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
 from scipy.special import softmax
+from wordcloud import WordCloud
 
 # Server
 
-from flask import Flask, request
+from flask import Flask, request, Response
 from markupsafe import escape
 
 # Pretrained Model
@@ -56,12 +57,14 @@ def getScores(data_file: TextIO) -> dict[str, list[float]]:
     return result
 
 
-# with open("./dummy_data.csv") as data_file:
-#     final_result = getScores(data_file=data_file)
-#     for key, val in final_result.items():
-#         print(key)
-#         print(val)
-#         print()
+def make_wc(testcsv: TextIO):
+    df = pd.read_csv(testcsv, escapechar="\\", skipinitialspace=True)
+
+    text = " ".join(df["review"])
+    print(text)
+    wc = WordCloud(width=800, height=400, background_color="white").generate(text)
+    return wc
+
 
 # Server Code
 app = Flask(__name__)
@@ -78,9 +81,19 @@ def greet():
     data_file = uploaded_file.read()  # Bytes
     with open("test_file.csv", "wb") as test_file:
         test_file.write(data_file)
+
+    # with open("test_file.csv", "r") as test_file:
+    #     wc_data = jsonpickle.dumps(make_wc(test_file))
+
     with open("test_file.csv", "r") as test_file:
-        scores = json.dumps(getScores(test_file))
-        return scores
+        res_scores = getScores(test_file)
+
+    res_content = jsonpickle.encode(res_scores)
+
+    res = Response(content_type="application/octet-stream", response=res_content)
+
+    return res
+
 
 if __name__ == "__main__":
     app.run()
