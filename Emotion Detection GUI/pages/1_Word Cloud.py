@@ -2,7 +2,8 @@ import streamlit as st
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 from streamlit.delta_generator import DeltaGenerator
-from typing import List, Generator
+from typing import Generator
+import math
 
 # Hiding Streamlit watermarks
 hide_streamlit_style = """
@@ -49,16 +50,58 @@ def getCloudDictionarySegment(
         yield segment
 
 
+def initializeStates():
+    st.session_state["cloud_current_page"] = 1
+    st.session_state["cloud_total_pages"] = math.ceil(
+        len(st.session_state["word_clouds"]) / st.session_state["max_charts"]
+    )
+    st.session_state["cloud_iterator"] = getCloudDictionarySegment(
+        st.session_state["word_clouds"], st.session_state["max_charts"]
+    )
+    st.session_state["wc_segment"] = next(st.session_state["cloud_iterator"])
+
+
 # Session Management
 
 if "first_time_in_cloud" not in st.session_state:
     st.session_state["first_time_in_cloud"] = True
 
+if "cloud_iterator" not in st.session_state:
+    st.session_state["cloud_iterator"] = None
+
+if "cloud_current_page" not in st.session_state:
+    st.session_state["cloud_current_page"] = 0
+
+if "cloud_total_pages" not in st.session_state:
+    st.session_state["cloud_total_pages"] = 0
+
+if "word_clouds" not in st.session_state:
+    st.session_state["word_clouds"] = None
+
+if "wc_segment" not in st.session_state:
+    st.session_state["wc_segment"] = None
+
 
 st.title("Review Analysis")
 
-if not st.session_state["Word Cloud"]:
+if not st.session_state["word_clouds"]:
     "Please upload a file for analysis"
 else:
-    pie_chart_columns = tuple(st.columns(st.session_state["no_of_columns"]))
-    # Incomplete
+    wc_columns = tuple(st.columns(st.session_state["no_of_columns"]))
+    if st.session_state["first_time_in_cloud"]:
+        initializeStates()
+        st.session_state["first_time_in_cloud"] = False
+
+    btn_space = st.empty()
+    next_page = btn_space.button("Next page")
+    if next_page:
+        st.session_state["wc_segment"] = next(st.session_state["cloud_iterator"])
+        st.session_state["cloud_current_page"] += 1
+
+    printClouds(st.session_state["wc_segment"], wc_columns)
+
+    if st.session_state["cloud_current_page"] == st.session_state["cloud_total_pages"]:
+        btn_space.empty()
+
+if st.session_state["cloud_current_page"] > 0:
+    st.write("Page {}".format(st.session_state["cloud_current_page"]))

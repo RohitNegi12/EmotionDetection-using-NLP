@@ -5,8 +5,10 @@ import numpy as np
 from streamlit.delta_generator import DeltaGenerator
 import requests
 import jsonpickle
-import csv
-from typing import List, Iterator
+from typing import List, Generator
+from itertools import tee
+import math
+from wordcloud import WordCloud
 
 # Debug
 import sys
@@ -30,7 +32,7 @@ def drawChart(scores: list[float]):
     labels = ["Negative", "Neutral", "Positive"]
 
     # Pie Chart
-    fig1, ax1 = plt.subplots()
+    fig1, ax1 = plt.subplots(figsize=(4, 4), layout="constrained")
     ax1.pie(
         scores,
         labels=labels,
@@ -43,13 +45,7 @@ def drawChart(scores: list[float]):
     st.pyplot(fig1)
 
 
-def getSentimentData(sent_dict: dict):
-    with open("res_scores.csv", "r") as res_scores:
-        reader = csv.DictReader(sent_dict)
-
-
 def printCharts(data: dict[str, list[float]], stContainers: tuple[DeltaGenerator, ...]):
-    logging.info(data)
     width = len(stContainers)
     keys = list(data.keys())
     for i in range(len(data)):
@@ -60,7 +56,7 @@ def printCharts(data: dict[str, list[float]], stContainers: tuple[DeltaGenerator
 
 def getSentimentDictionarySegment(
     scores: dict[str, List[float]], max_charts: int
-) -> Iterator[dict[str, List[float]]]:
+) -> Generator[dict[str, List[float]], None, None]:
     segment = {}
     i = 0
     for key, row in scores.items():
@@ -75,28 +71,47 @@ def getSentimentDictionarySegment(
         yield segment
 
 
-def checkToDisable(
-    gen: Iterator[dict[str, List[float]]], btn_space_to_disable: DeltaGenerator
-):
-    try:
-        print("Check Function", next(gen))
-    except:
-        btn_space_to_disable.empty()
+def analysisHanlder(data, max_charts):
+    url = "http://localhost:5000/scores"
+    files = {"review_data": ("something", data, "text/csv")}
+    response = requests.get(url, files=files)
+    scores: dict = jsonpickle.decode(response.text)[0]  # type: ignore
+    word_clouds: dict[str, WordCloud] = jsonpickle.decode(response.text)[1]  # type: ignore
+    logging.info(word_clouds)
+    st.session_state["word_clouds"] = word_clouds
+    st.session_state["current_page"] = 1
+    st.session_state["total_pages"] = math.ceil(len(scores) / max_charts)
+    st.session_state["scores_iterator"] = getSentimentDictionarySegment(
+        scores, max_charts
+    )
+    st.session_state["scores"] = next(st.session_state["scores_iterator"])
 
 
 # State Management
 
-if "scores_set" not in st.session_state:
-    st.session_state["scores_set"] = False
-
-if "scores_val" not in st.session_state:
-    st.session_state["scores_val"] = dict()
-
-if "scores_segment" not in st.session_state:
-    st.session_state["scores_segment"] = {"is_set": False, "segment": dict()}
+if "first_time" not in st.session_state:
+    st.session_state["first_time"] = True
 
 if "scores_iterator" not in st.session_state:
-    st.session_state["score_iterator"] = None
+    st.session_state["scores_iterator"] = None
+
+if "scores" not in st.session_state:
+    st.session_state["scores"] = None
+
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = 0
+
+if "total_pages" not in st.session_state:
+    st.session_state["total_pages"] = 0
+
+if "word_clouds" not in st.session_state:
+    st.session_state["word_clouds"] = None
+
+if "no_of_columns" not in st.session_state:
+    st.session_state["no_of_columns"] = 4
+
+if "max_charts" not in st.session_state:
+    st.session_state["max_charts"] = 20
 
 # Main Page
 
@@ -107,54 +122,38 @@ st.markdown("Ensure columns are labelled: ```product_id, review```")
 
 col_decision = st.empty()
 
-with col_decision:
-    no_of_columns = int(st.number_input("Enter no. of columns", 2, 6, 2, 1, "%d"))
+st.session_state["no_of_columns"] = int(
+    col_decision.number_input("Enter no. of columns", 2, 6, 4, 1, "%d")
+)
 
 data = st.file_uploader(label="Review Data", type=["csv"])
 
-pie_chart_container = st.empty()
-
-with pie_chart_container:
-    pie_chart_columns = tuple(st.columns(no_of_columns))
+pie_chart_columns = tuple(st.columns(st.session_state["no_of_columns"]))
 
 btn_space = st.empty()
+
 btn_get_analysis = btn_space.button("Get Analysis")
 
 if btn_get_analysis and data is not None:
-    # col_decision.write(f"No. of columns: {no_of_columns}")
+    col_decision.empty()
+    analysisHanlder(data, st.session_state["max_charts"])
 
-    url = "http://localhost:5000/scores"
-    files = {"review_data": ("something", data, "text/csv")}
-    response = requests.get(url, files=files)
-    scores: dict = jsonpickle.decode(response.text)  # type: ignore
 
-    st.session_state["scores_set"] = True
-    st.session_state["scores_val"] = scores
-
-if data is None and st.session_state["scores_set"] == True:
-    st.session_state["scores_set"] = False
-    st.session_state["scores_val"] = st.session_state["scores_val"].clear()
-
-if st.session_state["scores_set"] == True:
-    scores = st.session_state["scores_val"]
+if st.session_state["scores_iterator"] is not None:
     btn_space.empty()
 
-    if not st.session_state["scores_segment"]["is_set"]:
-        st.session_state["scores_iterator"] = getSentimentDictionarySegment(scores, 1)
-        st.session_state["scores_segment"]["is_set"] = True
-
-if st.session_state["scores_segment"]["is_set"]:
-    with pie_chart_container:
-        printCharts(st.session_state["scores_segment"]["segment"], pie_chart_columns)
-
-    # printCharts(scores, tuple(st.columns(no_of_columns)))
-    # printCharts(next(score_iterator), pie_chart_columns)
-    btn_next_page = btn_space.button("Next page")
-
-    if btn_next_page:
+    next_page = btn_space.button("Next page")
+    if next_page:
         try:
-            printCharts(next(st.session_state["scores_iterator"]), pie_chart_columns)
+            st.session_state["scores"] = next(st.session_state["scores_iterator"])
+            st.session_state["current_page"] += 1
         except:
-            btn_space.empty()
+            pass
 
-st.write(st.session_state)
+    printCharts(st.session_state["scores"], pie_chart_columns)
+
+    if st.session_state["current_page"] == st.session_state["total_pages"]:
+        btn_space.empty()
+
+if st.session_state["current_page"] > 0:
+    st.write("Page {}".format(st.session_state["current_page"]))
