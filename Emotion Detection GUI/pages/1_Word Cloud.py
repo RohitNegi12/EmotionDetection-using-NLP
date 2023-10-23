@@ -87,6 +87,11 @@ st.title("Review Analysis")
 if not st.session_state["word_clouds"]:
     "Please upload a file for analysis"
 else:
+    st.session_state["no_of_columns"] = int(
+        st.number_input(
+            "Enter no. of columns", 2, 6, st.session_state["no_of_columns"], 1, "%d"
+        )
+    )
     wc_columns = tuple(st.columns(st.session_state["no_of_columns"]))
     if st.session_state["first_time_in_cloud"]:
         initializeStates()

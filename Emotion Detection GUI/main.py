@@ -123,7 +123,9 @@ st.markdown("Ensure columns are labelled: ```product_id, review```")
 col_decision = st.empty()
 
 st.session_state["no_of_columns"] = int(
-    col_decision.number_input("Enter no. of columns", 2, 6, 4, 1, "%d")
+    col_decision.number_input(
+        "Enter no. of columns", 2, 6, st.session_state["no_of_columns"], 1, "%d"
+    )
 )
 
 data = st.file_uploader(label="Review Data", type=["csv"])
