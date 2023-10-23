@@ -5,4 +5,4 @@ deactivate
 cd ../
 cd "Emotion Detection GUI/"
 \venv\Scripts\activate.bat
-start "GUI Server" streamlit run main.py
+start "GUI Server" streamlit run main2.py

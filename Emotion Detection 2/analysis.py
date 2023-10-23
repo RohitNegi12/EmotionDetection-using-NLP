@@ -57,13 +57,19 @@ def getScores(data_file: TextIO) -> dict[str, list[float]]:
     return result
 
 
-def make_wc(testcsv: TextIO):
+def make_wc(testcsv: TextIO) -> dict[str, WordCloud]:
     df = pd.read_csv(testcsv, escapechar="\\", skipinitialspace=True)
+    df.sort_values(by="product_id", inplace=True)
+    df.set_index(keys=["product_id"], drop=False, inplace=True)
+    products = df["product_id"].unique().tolist()
+    result: dict[str, WordCloud] = {}
 
-    text = " ".join(df["review"])
-    print(text)
-    wc = WordCloud(width=800, height=400, background_color="white").generate(text)
-    return wc
+    for product in products:
+        prod_df = df.loc[df["product_id"] == product]
+        text = " ".join(prod_df["review"])
+        wc = WordCloud(width=800, height=400, background_color="white").generate(text)
+        result[product] = wc
+    return result
 
 
 # Server Code
@@ -82,13 +88,13 @@ def greet():
     with open("test_file.csv", "wb") as test_file:
         test_file.write(data_file)
 
-    # with open("test_file.csv", "r") as test_file:
-    #     wc_data = jsonpickle.dumps(make_wc(test_file))
+    with open("test_file.csv", "r") as test_file:
+        wc_data = jsonpickle.dumps(make_wc(test_file))
 
     with open("test_file.csv", "r") as test_file:
         res_scores = getScores(test_file)
 
-    res_content = jsonpickle.encode(res_scores)
+    res_content = jsonpickle.encode((res_scores, wc_data))
 
     res = Response(content_type="application/octet-stream", response=res_content)
 

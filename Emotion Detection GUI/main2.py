@@ -5,7 +5,6 @@ import numpy as np
 from streamlit.delta_generator import DeltaGenerator
 import requests
 import jsonpickle
-import csv
 from typing import List, Generator
 from itertools import tee
 import math
@@ -76,7 +75,9 @@ def analysisHanlder(data, max_charts):
     url = "http://localhost:5000/scores"
     files = {"review_data": ("something", data, "text/csv")}
     response = requests.get(url, files=files)
-    scores: dict = jsonpickle.decode(response.text)  # type: ignore
+    scores: dict = jsonpickle.decode(response.text)[0]  # type: ignore
+    word_clouds: dict = jsonpickle.decode(response.text)[1]  # type: ignore
+    st.session_state["word_clouds"] = word_clouds
     st.session_state["current_page"] = 1
     st.session_state["total_pages"] = math.ceil(len(scores) / max_charts)
     st.session_state["scores_iterator"] = getSentimentDictionarySegment(
@@ -101,6 +102,12 @@ if "current_page" not in st.session_state:
 if "total_pages" not in st.session_state:
     st.session_state["total_pages"] = 0
 
+if "word_clouds" not in st.session_state:
+    st.session_state["word_clouds"] = None
+
+if "no_of_columns" not in st.session_state:
+    st.session_state["no_of_columns"] = None
+
 # Main Page
 
 st.title("Review Analysis")
@@ -110,7 +117,7 @@ st.markdown("Ensure columns are labelled: ```product_id, review```")
 
 col_decision = st.empty()
 
-no_of_columns = int(col_decision.number_input("Enter no. of columns", 2, 6, 2, 1, "%d"))
+no_of_columns = int(col_decision.number_input("Enter no. of columns", 2, 6, 4, 1, "%d"))
 
 data = st.file_uploader(label="Review Data", type=["csv"])
 
@@ -121,9 +128,10 @@ btn_space = st.empty()
 btn_get_analysis = btn_space.button("Get Analysis")
 
 if btn_get_analysis and data is not None:
+    st.session_state["no_of_columns"] = no_of_columns
     col_decision.empty()
     col_decision.write(f"No. of columns: {no_of_columns}")
-    analysisHanlder(data, 20)
+    analysisHanlder(data, 4)
 
 
 if st.session_state["scores_iterator"] is not None:
@@ -151,5 +159,3 @@ if st.session_state["scores_iterator"] is not None:
 
 if st.session_state["current_page"] > 0:
     st.write("Page {}".format(st.session_state["current_page"]))
-
-st.write(st.session_state)
