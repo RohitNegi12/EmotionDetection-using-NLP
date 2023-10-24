@@ -1,7 +1,0 @@
-streamlit
-pandas
-matplotlib
-flask
-wordcloud
-transformers
-scipy

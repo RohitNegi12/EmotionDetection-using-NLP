@@ -1,7 +1,7 @@
 # Global
 __pycache__
 venv
-
+start_server.bat
 # GUI
 !Emotion Detection GUI/main.py
 !Emotion Detection GUI/requirements.txt
