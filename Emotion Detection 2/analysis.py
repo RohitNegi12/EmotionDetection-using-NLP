@@ -90,18 +90,6 @@ def greet():
 
     with open("test_file.csv", "r") as test_file:
         wc_data = make_wc(test_file)
-    # wc1 = WordCloud(width=800, height=400, background_color="white").generate("hello")
-    # wc2 = WordCloud(width=800, height=400, background_color="white").generate("hello")
-    # wc_data = {
-    #     101: wc1,
-    #     102: wc2,
-    #     103: wc1,
-    #     104: wc2,
-    #     105: wc1,
-    #     106: wc2,
-    #     107: wc1,
-    #     108: wc2,
-    # }
 
     with open("test_file.csv", "r") as test_file:
         res_scores = getScores(test_file)
