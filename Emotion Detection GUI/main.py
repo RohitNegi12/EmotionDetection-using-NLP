@@ -10,10 +10,6 @@ from itertools import tee
 import math
 from wordcloud import WordCloud
 
-# Debug
-import sys
-import logging
-
 st.set_page_config(page_title="Review Analysis", page_icon="🧪", layout="wide")
 
 # Hiding Streamlit watermarks
@@ -77,7 +73,6 @@ def analysisHanlder(data, max_charts):
     response = requests.get(url, files=files)
     scores: dict = jsonpickle.decode(response.text)[0]  # type: ignore
     word_clouds: dict[str, WordCloud] = jsonpickle.decode(response.text)[1]  # type: ignore
-    logging.info(word_clouds)
     st.session_state["word_clouds"] = word_clouds
     st.session_state["current_page"] = 1
     st.session_state["total_pages"] = math.ceil(len(scores) / max_charts)
