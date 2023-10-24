@@ -117,8 +117,7 @@ if "max_charts" not in st.session_state:
 
 st.title("Review Analysis")
 
-"Upload your data in .csv format"
-st.markdown("Ensure columns are labelled: ```product_id, review```")
+# st.markdown("Ensure columns are labelled: ```product_id, review```")
 
 col_decision = st.empty()
 
@@ -128,7 +127,9 @@ st.session_state["no_of_columns"] = int(
     )
 )
 
-data = st.file_uploader(label="Review Data", type=["csv"])
+"Upload your data in .csv format"
+
+data = st.file_uploader(label="Review Data\n\nEnsure columns are labelled: :green[product_id, review]", type=["csv"])
 
 pie_chart_columns = tuple(st.columns(st.session_state["no_of_columns"]))
 
