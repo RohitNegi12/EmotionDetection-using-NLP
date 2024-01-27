@@ -1,5 +1,8 @@
+# Global
+__pycache__
+venv
+start_server.bat
 # GUI
-Emotion Detection GUI/*
 !Emotion Detection GUI/main.py
 
 # Machine Learning
