@@ -4,7 +4,7 @@ import numpy as np
 import jsonpickle
 
 from transformers import AutoTokenizer
-from transformers import AutoModelForSequenceClassification
+from transformers import TFAutoModelForSequenceClassification
 from scipy.special import softmax
 from wordcloud import WordCloud
 
@@ -17,7 +17,7 @@ from markupsafe import escape
 
 MODEL = f"cardiffnlp/twitter-roberta-base-sentiment"
 tokenizer = AutoTokenizer.from_pretrained(MODEL)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL)
+model = TFAutoModelForSequenceClassification.from_pretrained(MODEL)
 
 
 def preprocess(text: str) -> str:
@@ -33,10 +33,10 @@ def preprocess(text: str) -> str:
 def roberta_analyze(sentence: str) -> np.ndarray:
     processed_sentence = preprocess(sentence)
     encoded_text = tokenizer(
-        processed_sentence, return_tensors="pt", truncation=True, max_length=50
+        processed_sentence, return_tensors="tf", truncation=True, max_length=50
     )
     output = model(**encoded_text)
-    scores = output[0][0].detach().numpy()
+    scores = output[0][0].numpy()
     scores = softmax(scores).tolist()
     return scores
 
@@ -102,4 +102,4 @@ def greet():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
